@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('survey_id')->constrained()->onDelete('cascade');
             $table->foreignId('question_id')->constrained()->onDelete('cascade');
-            $table->string('respondent_email')->nullable();
             $table->text('response_value');
             $table->timestamp('submitted_at')->useCurrent();
             $table->timestamps();
