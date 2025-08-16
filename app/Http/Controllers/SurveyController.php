@@ -83,7 +83,7 @@ class SurveyController extends Controller
     public function takeSurvey(Survey $survey)
     {
         if ($survey->status !== 'online') {
-            abort(404, 'Survey not available');
+            return view('surveys.not-available', compact('survey'));
         }
 
         $survey->load('questions');
@@ -93,10 +93,16 @@ class SurveyController extends Controller
     public function submitSurvey(Request $request, Survey $survey)
     {
         if ($survey->status !== 'online') {
-            abort(404, 'Survey not available');
+            return view('surveys.not-available', compact('survey'));
         }
 
         $survey->load('questions');
+        /*
+        $rules = [
+            'responses' => 'required|array|min:1',
+            'responses.*' => 'required|string',
+        ];
+        */
 
         $rules = [];
         foreach ($survey->questions as $question) {

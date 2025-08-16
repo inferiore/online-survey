@@ -2,6 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Question;
+use App\Models\Survey;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -13,20 +15,17 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
-
-        User::factory()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-        ]);
-
-        $this->call([
-            SurveySeeder::class,
-            QuestionSeeder::class,
-            SurveyResponseSeeder::class,
-        ]);
+        if(User::all()->count() === 0) {
+            $this->call(UserSeeder::class);
+        }
+        if(Survey::all()->count() === 0) {
+            $this->call(SurveySeeder::class);
+        }
+        if(Question::all()->count() === 0) {
+            $this->call(QuestionSeeder::class);
+        }
+        if(User::all()->count() === 0) {
+            $this->call(UserSeeder::class);
+        }
     }
 }

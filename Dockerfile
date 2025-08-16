@@ -3,6 +3,7 @@ FROM php:8.2-fpm
 # Install essential system dependencies
 RUN apt-get update && apt-get install -y \
     git \
+    curl \
     unzip \
     libonig-dev \
     libxml2-dev \
@@ -13,6 +14,10 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /tmp/*
+
+# Install Node.js and npm
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -26,8 +31,17 @@ COPY composer.json composer.lock ./
 # Install PHP dependencies (include dev dependencies for local development)
 RUN composer install --optimize-autoloader --no-scripts
 
+# Copy package.json and package-lock.json for Node.js dependencies
+COPY package.json package-lock.json* ./
+
+# Install Node.js dependencies
+RUN npm install
+
 # Copy application files
 COPY . .
+
+# Build frontend assets
+RUN npm run build
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \

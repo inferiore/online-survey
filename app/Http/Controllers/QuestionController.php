@@ -23,7 +23,6 @@ class QuestionController extends Controller
         }
 
         $questions = $query->latest()->paginate(15)->withQueryString();
-
         return view('questions.index', compact('questions'));
     }
 
@@ -88,20 +87,20 @@ class QuestionController extends Controller
     {
         $questionIds = $request->input('question_ids', []);
         $questions = Question::whereIn('id', $questionIds)->get();
-        
+
         // Build surveys query with filters
         $surveysQuery = Survey::query();
-        
+
         // Filter by survey name
         if ($request->filled('survey_name')) {
             $surveysQuery->where('name', 'like', '%' . $request->survey_name . '%');
         }
-        
+
         // Filter by survey status
         if ($request->filled('survey_status')) {
             $surveysQuery->where('status', $request->survey_status);
         }
-        
+
         $surveys = $surveysQuery->latest()->paginate(10)->withQueryString();
 
         return view('questions.mass-assign', compact('questions', 'surveys', 'questionIds'));
@@ -132,9 +131,16 @@ class QuestionController extends Controller
             'question_ids' => 'required|array',
             'question_ids.*' => 'exists:questions,id',
         ]);
+        Question::whereIn('id', $request->question_ids)->doesntHave('surveys')->delete();
+        $noDeleteQuestions = Question::whereIn('id', $request->question_ids)->has('surveys')->get()->pluck('name')->toArray();
 
-        Question::whereIn('id', $request->question_ids)->delete();
+        $message = count($noDeleteQuestions) >0 ? 'Questions partially deleted because some of them are linked to question or answers':'Questions deleted successfully.';
 
-        return redirect()->route('questions.index')->with('success', 'Questions deleted successfully.');
+        return redirect()->route('questions.index')
+            ->with('warnings',$noDeleteQuestions)
+            ->with('warning',$message )
+
+            ;
+
     }
 }

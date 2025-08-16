@@ -15,9 +15,10 @@ Route::resource('surveys', SurveyController::class);
 
 // Mass update routes for questions
 Route::get('questions/mass-assign', [QuestionController::class, 'showMassAssign'])->name('questions.mass-assign.form');
+Route::delete('questions/mass-delete', [QuestionController::class, 'massDelete'])->name('questions.mass-delete');
+
 Route::resource('questions', QuestionController::class);
 Route::post('questions/mass-assign', [QuestionController::class, 'massAssign'])->name('questions.mass-assign');
-Route::delete('questions/mass-delete', [QuestionController::class, 'massDelete'])->name('questions.mass-delete');
 
 // Public survey routes (for taking surveys)
 Route::get('take-survey/{survey}', [SurveyController::class, 'takeSurvey'])->name('surveys.take');

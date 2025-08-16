@@ -37,8 +37,21 @@
                 </ul>
             </div>
         @endif
+        @if(session('warning'))
+            <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+                {{ session('warning') }}
 
-        @yield('content')
+                <ul>
+                    @foreach(session("warnings") as $warning)
+                        <li>{{ $warning }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+
+
+            @yield('content')
     </main>
 </body>
 </html>

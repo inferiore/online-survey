@@ -9,24 +9,23 @@
         Create New Question
     </a>
 </div>
-
 <!-- Filters -->
 <div class="bg-white shadow rounded-lg p-6 mb-6">
     <form method="GET" action="{{ route('questions.index') }}" class="flex flex-wrap gap-4 items-end">
         <div class="flex-1 min-w-0">
             <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Question Name</label>
-            <input type="text" 
-                   id="name" 
-                   name="name" 
-                   value="{{ request('name') }}" 
+            <input type="text"
+                   id="name"
+                   name="name"
+                   value="{{ request('name') }}"
                    placeholder="Search by question name..."
                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
-        
+
         <div class="min-w-0">
             <label for="question_type" class="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
-            <select id="question_type" 
-                    name="question_type" 
+            <select id="question_type"
+                    name="question_type"
                     class="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="">All Types</option>
                 <option value="rating" {{ request('question_type') === 'rating' ? 'selected' : '' }}>Rating</option>
@@ -34,7 +33,7 @@
                 <option value="multiple-choice" {{ request('question_type') === 'multiple-choice' ? 'selected' : '' }}>Multiple Choice</option>
             </select>
         </div>
-        
+
         <div class="flex space-x-2">
             <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Filter
@@ -45,7 +44,6 @@
         </div>
     </form>
 </div>
-
 @if($questions->count() > 0)
     <form id="mass-action-form" method="POST" class="mb-4">
         @csrf
@@ -114,7 +112,7 @@
             </ul>
         </div>
     </form>
-    
+
     <!-- Pagination -->
     <div class="mt-6">
         {{ $questions->links() }}
@@ -148,7 +146,7 @@
         function massAssign() {
             const checkedBoxes = document.querySelectorAll('.question-checkbox:checked');
             if (checkedBoxes.length === 0) return;
-            
+
             const form = document.getElementById('mass-action-form');
             form.action = '{{ route("questions.mass-assign.form") }}';
             form.method = 'GET';
@@ -158,17 +156,17 @@
         function massDelete() {
             const checkedBoxes = document.querySelectorAll('.question-checkbox:checked');
             if (checkedBoxes.length === 0) return;
-            
+
             if (confirm(`Are you sure you want to delete ${checkedBoxes.length} questions?`)) {
                 const form = document.getElementById('mass-action-form');
                 form.action = '{{ route("questions.mass-delete") }}';
-                
+
                 const methodInput = document.createElement('input');
                 methodInput.type = 'hidden';
                 methodInput.name = '_method';
                 methodInput.value = 'DELETE';
                 form.appendChild(methodInput);
-                
+
                 form.submit();
             }
         }
