@@ -45,6 +45,48 @@
                 <p class="text-sm text-gray-600 mt-1">Choose which surveys these questions should be added to</p>
             </div>
 
+            <!-- Survey Filters -->
+            <div class="p-6 border-b bg-gray-50">
+                <form method="GET" action="{{ route('questions.mass-assign.form') }}" class="flex flex-wrap gap-4 items-end">
+                    <!-- Hidden question IDs -->
+                    @foreach(request('question_ids', []) as $questionId)
+                        <input type="hidden" name="question_ids[]" value="{{ $questionId }}">
+                    @endforeach
+                    
+                    <div class="flex-1 min-w-0">
+                        <label for="survey_name" class="block text-sm font-medium text-gray-700 mb-1">Survey Name</label>
+                        <input type="text" 
+                               id="survey_name" 
+                               name="survey_name" 
+                               value="{{ request('survey_name') }}" 
+                               placeholder="Search surveys by name..."
+                               class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
+                    
+                    <div class="min-w-0">
+                        <label for="survey_status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="survey_status" 
+                                name="survey_status" 
+                                class="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            <option value="">All Statuses</option>
+                            <option value="created" {{ request('survey_status') === 'created' ? 'selected' : '' }}>Created</option>
+                            <option value="online" {{ request('survey_status') === 'online' ? 'selected' : '' }}>Online</option>
+                            <option value="finished" {{ request('survey_status') === 'finished' ? 'selected' : '' }}>Finished</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded text-sm">
+                            Filter
+                        </button>
+                        <a href="{{ route('questions.mass-assign.form', ['question_ids' => request('question_ids', [])]) }}" 
+                           class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded text-sm">
+                            Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+
             <form action="{{ route('questions.mass-assign') }}" method="POST" class="p-6">
                 @csrf
                 
@@ -54,6 +96,10 @@
                 @endforeach
 
                 @if($surveys->count() > 0)
+                    <div class="mb-4 text-sm text-gray-600">
+                        Showing {{ $surveys->firstItem() }} to {{ $surveys->lastItem() }} of {{ $surveys->total() }} surveys
+                    </div>
+                    
                     <div class="space-y-4">
                         <div class="flex items-center mb-4">
                             <input type="checkbox" id="select-all-surveys" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
@@ -86,6 +132,13 @@
                             @endforeach
                         </div>
                     </div>
+                    
+                    <!-- Pagination -->
+                    @if($surveys->hasPages())
+                        <div class="mt-6 border-t pt-4">
+                            {{ $surveys->appends(['question_ids' => $questionIds])->links() }}
+                        </div>
+                    @endif
 
                     <div class="mt-6 flex justify-end space-x-3">
                         <a href="{{ route('questions.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">

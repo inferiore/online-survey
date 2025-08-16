@@ -88,7 +88,21 @@ class QuestionController extends Controller
     {
         $questionIds = $request->input('question_ids', []);
         $questions = Question::whereIn('id', $questionIds)->get();
-        $surveys = Survey::all();
+        
+        // Build surveys query with filters
+        $surveysQuery = Survey::query();
+        
+        // Filter by survey name
+        if ($request->filled('survey_name')) {
+            $surveysQuery->where('name', 'like', '%' . $request->survey_name . '%');
+        }
+        
+        // Filter by survey status
+        if ($request->filled('survey_status')) {
+            $surveysQuery->where('status', $request->survey_status);
+        }
+        
+        $surveys = $surveysQuery->latest()->paginate(10)->withQueryString();
 
         return view('questions.mass-assign', compact('questions', 'surveys', 'questionIds'));
     }
