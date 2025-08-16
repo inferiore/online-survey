@@ -9,6 +9,9 @@ services:
     volumes:
       # Mount source code for development (excluding vendor, storage, bootstrap/cache)
       - ./:/var/www/html/
+      # Preserve container-built dependencies and cache
+      - /var/www/html/vendor
+      - /var/www/html/node_modules
       - storage_data:/var/www/html/storage
       - bootstrap_cache:/var/www/html/bootstrap/cache
       # Mount logs for easy access

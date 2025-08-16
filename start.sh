@@ -3,17 +3,22 @@ set -e
 
 echo "Starting Laravel application..."
 
+# Install and build frontend assets
+echo "Installing Node.js dependencies..."
+npm install
+
+echo "Building frontend assets..."
+npm run build
+
 # Run migrations
 echo "Running migrations..."
 php artisan migrate --force
 php artisan db:seed
+
 # Optimize application
 echo "Optimizing application..."
 php artisan config:cache
 php artisan route:cache
-
-# Database seeding must be done manually
-# Run: docker-compose exec app php artisan db:seed
 
 # Start server
 echo "Starting server on http://0.0.0.0:8000"
