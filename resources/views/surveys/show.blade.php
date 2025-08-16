@@ -10,6 +10,11 @@
             <p class="mt-1 max-w-2xl text-sm text-gray-500">Survey details and assigned questions</p>
         </div>
         <div class="flex space-x-2">
+            @if($survey->status === 'online')
+                <a href="{{ route('surveys.take', $survey) }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded" target="_blank">
+                    Take Survey
+                </a>
+            @endif
             <a href="{{ route('surveys.edit', $survey) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Edit
             </a>

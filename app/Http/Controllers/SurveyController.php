@@ -3,13 +3,27 @@
 namespace App\Http\Controllers;
 
 use App\Models\Survey;
+use App\Models\SurveyResponse;
 use Illuminate\Http\Request;
 
 class SurveyController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $surveys = Survey::with('createdBy')->latest()->get();
+        $query = Survey::with('createdBy');
+
+        // Filter by name
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $surveys = $query->latest()->paginate(10)->withQueryString();
+
         return view('surveys.index', compact('surveys'));
     }
 
@@ -28,7 +42,7 @@ class SurveyController extends Controller
         Survey::create([
             'name' => $request->name,
             'status' => $request->status,
-            'created_by_id' => auth()->id(),
+            'created_by_id' => auth()->id()??1,
         ]);
 
         return redirect()->route('surveys.index')->with('success', 'Survey created successfully.');
@@ -64,5 +78,48 @@ class SurveyController extends Controller
     {
         $survey->delete();
         return redirect()->route('surveys.index')->with('success', 'Survey deleted successfully.');
+    }
+
+    public function takeSurvey(Survey $survey)
+    {
+        if ($survey->status !== 'online') {
+            abort(404, 'Survey not available');
+        }
+
+        $survey->load('questions');
+        return view('surveys.take', compact('survey'));
+    }
+
+    public function submitSurvey(Request $request, Survey $survey)
+    {
+        if ($survey->status !== 'online') {
+            abort(404, 'Survey not available');
+        }
+
+        $survey->load('questions');
+
+        $rules = [];
+        foreach ($survey->questions as $question) {
+            $rules["responses.{$question->id}"] = 'required|string|max:1000';
+        }
+
+        $request->validate($rules);
+
+        $submittedAt = now();
+
+        $responses = $survey->questions->map(function ($question) use ($request, $survey, $submittedAt) {
+            return [
+                'survey_id' => $survey->id,
+                'question_id' => $question->id,
+                'response_value' => $request->input("responses.{$question->id}"),
+                'submitted_at' => $submittedAt,
+                'created_at' => $submittedAt,
+                'updated_at' => $submittedAt,
+            ];
+        })->toArray();
+
+        SurveyResponse::insert($responses);
+
+        return redirect()->route('surveys.take', $survey)->with('success', 'Thank you! Your survey response has been submitted successfully.');
     }
 }

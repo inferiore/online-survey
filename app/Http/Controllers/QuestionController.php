@@ -8,9 +8,22 @@ use Illuminate\Http\Request;
 
 class QuestionController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $questions = Question::with('createdBy')->latest()->get();
+        $query = Question::with('createdBy');
+
+        // Filter by question name
+        if ($request->filled('name')) {
+            $query->where('name', 'like', '%' . $request->name . '%');
+        }
+
+        // Filter by question type
+        if ($request->filled('question_type')) {
+            $query->where('question_type', $request->question_type);
+        }
+
+        $questions = $query->latest()->paginate(15)->withQueryString();
+
         return view('questions.index', compact('questions'));
     }
 
@@ -31,7 +44,7 @@ class QuestionController extends Controller
             'name' => $request->name,
             'question_text' => $request->question_text,
             'question_type' => $request->question_type,
-            'created_by_id' => auth()->id(),
+            'created_by_id' => auth()->id()??1,
         ]);
 
         return redirect()->route('questions.index')->with('success', 'Question created successfully.');
@@ -71,6 +84,15 @@ class QuestionController extends Controller
         return redirect()->route('questions.index')->with('success', 'Question deleted successfully.');
     }
 
+    public function showMassAssign(Request $request)
+    {
+        $questionIds = $request->input('question_ids', []);
+        $questions = Question::whereIn('id', $questionIds)->get();
+        $surveys = Survey::all();
+
+        return view('questions.mass-assign', compact('questions', 'surveys', 'questionIds'));
+    }
+
     public function massAssign(Request $request)
     {
         $request->validate([
@@ -83,7 +105,7 @@ class QuestionController extends Controller
         foreach ($request->survey_ids as $surveyId) {
             $survey = Survey::find($surveyId);
             foreach ($request->question_ids as $questionId) {
-                $survey->questions()->syncWithoutDetaching([$questionId => ['created_by_id' => auth()->id()]]);
+                $survey->questions()->syncWithoutDetaching([$questionId => ['created_by_id' => auth()->id()??1]]);
             }
         }
 

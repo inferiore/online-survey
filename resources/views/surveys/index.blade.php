@@ -10,6 +10,42 @@
     </a>
 </div>
 
+<!-- Filters -->
+<div class="bg-white shadow rounded-lg p-6 mb-6">
+    <form method="GET" action="{{ route('surveys.index') }}" class="flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-0">
+            <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Survey Name</label>
+            <input type="text" 
+                   id="name" 
+                   name="name" 
+                   value="{{ request('name') }}" 
+                   placeholder="Search by survey name..."
+                   class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+        </div>
+        
+        <div class="min-w-0">
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select id="status" 
+                    name="status" 
+                    class="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <option value="">All Statuses</option>
+                <option value="created" {{ request('status') === 'created' ? 'selected' : '' }}>Created</option>
+                <option value="online" {{ request('status') === 'online' ? 'selected' : '' }}>Online</option>
+                <option value="finished" {{ request('status') === 'finished' ? 'selected' : '' }}>Finished</option>
+            </select>
+        </div>
+        
+        <div class="flex space-x-2">
+            <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                Filter
+            </button>
+            <a href="{{ route('surveys.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                Clear
+            </a>
+        </div>
+    </form>
+</div>
+
 @if($surveys->count() > 0)
     <div class="bg-white shadow overflow-hidden sm:rounded-md">
         <ul class="divide-y divide-gray-200">
@@ -53,6 +89,11 @@
                 </li>
             @endforeach
         </ul>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="mt-6">
+        {{ $surveys->links() }}
     </div>
 @else
     <div class="text-center py-12">
