@@ -37,7 +37,7 @@ surveys
 
 questions
 ├── id (BIGINT, Primary Key)
-├── question_name (VARCHAR(255))
+├── name (VARCHAR(255))
 ├── question_text (TEXT)
 ├── question_type (ENUM: 'rating', 'comment-only', 'multiple-choice')
 ├── created_by_id (BIGINT, Foreign Key)
