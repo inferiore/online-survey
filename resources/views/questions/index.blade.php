@@ -45,6 +45,7 @@
     </form>
 </div>
 @if($questions->count() > 0)
+    <!-- Mass Action Form (separate from individual delete forms) -->
     <form id="mass-action-form" method="POST" class="mb-4">
         @csrf
         <div class="bg-white shadow rounded-lg p-4 mb-4">
@@ -66,52 +67,54 @@
                 </div>
             </div>
         </div>
+    </form>
 
-        <div class="bg-white shadow overflow-hidden sm:rounded-md">
-            <ul class="divide-y divide-gray-200">
-                @foreach($questions as $question)
-                    <li>
-                        <div class="px-4 py-4 flex items-center">
-                            <input type="checkbox" name="question_ids[]" value="{{ $question->id }}" class="question-checkbox mr-4">
-                            <div class="flex-1">
-                                <div class="flex items-center justify-between">
-                                    <p class="text-sm font-medium text-indigo-600 truncate">
-                                        <a href="{{ route('questions.show', $question) }}">{{ $question->name }}</a>
+    <!-- Questions List (separate from mass action form) -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul class="divide-y divide-gray-200">
+            @foreach($questions as $question)
+                <li>
+                    <div class="px-4 py-4 flex items-center">
+                        <input type="checkbox" name="question_ids[]" value="{{ $question->id }}" class="question-checkbox mr-4" form="mass-action-form">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between">
+                                <p class="text-sm font-medium text-indigo-600 truncate">
+                                    <a href="{{ route('questions.show', $question) }}">{{ $question->name }}</a>
+                                </p>
+                                <div class="ml-2 flex-shrink-0">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        {{ ucfirst(str_replace('-', ' ', $question->question_type)) }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-600">{{ Str::limit($question->question_text, 100) }}</p>
+                            </div>
+                            <div class="mt-2 flex justify-between">
+                                <div class="sm:flex">
+                                    <p class="flex items-center text-sm text-gray-500">
+                                        Created by {{ $question->createdBy->name ?? 'Unknown' }}
                                     </p>
-                                    <div class="ml-2 flex-shrink-0">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                                            {{ ucfirst(str_replace('-', ' ', $question->question_type)) }}
-                                        </span>
-                                    </div>
+                                    <p class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
+                                        {{ $question->created_at->format('M d, Y') }}
+                                    </p>
                                 </div>
-                                <div class="mt-2">
-                                    <p class="text-sm text-gray-600">{{ Str::limit($question->question_text, 100) }}</p>
-                                </div>
-                                <div class="mt-2 flex justify-between">
-                                    <div class="sm:flex">
-                                        <p class="flex items-center text-sm text-gray-500">
-                                            Created by {{ $question->createdBy->name ?? 'Unknown' }}
-                                        </p>
-                                        <p class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                                            {{ $question->created_at->format('M d, Y') }}
-                                        </p>
-                                    </div>
-                                    <div class="flex space-x-2">
-                                        <a href="{{ route('questions.edit', $question) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
-                                        <form action="{{ route('questions.destroy', $question) }}" method="POST" class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure?')">Delete</button>
-                                        </form>
-                                    </div>
+                                <div class="flex space-x-2">
+                                    <a href="{{ route('questions.edit', $question) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                    <!-- Individual Delete Form (outside mass action form) -->
+                                    <form action="{{ route('questions.destroy', $question) }}" method="POST" class="inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure?')">Delete</button>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    </form>
+                    </div>
+                </li>
+            @endforeach
+        </ul>
+    </div>
 
     <!-- Pagination -->
     <div class="mt-6">

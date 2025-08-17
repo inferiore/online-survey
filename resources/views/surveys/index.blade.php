@@ -15,18 +15,18 @@
     <form method="GET" action="{{ route('surveys.index') }}" class="flex flex-wrap gap-4 items-end">
         <div class="flex-1 min-w-0">
             <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Survey Name</label>
-            <input type="text" 
-                   id="name" 
-                   name="name" 
-                   value="{{ request('name') }}" 
+            <input type="text"
+                   id="name"
+                   name="name"
+                   value="{{ request('name') }}"
                    placeholder="Search by survey name..."
                    class="w-full border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
         </div>
-        
+
         <div class="min-w-0">
             <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-            <select id="status" 
-                    name="status" 
+            <select id="status"
+                    name="status"
                     class="border border-gray-300 rounded-md shadow-sm px-3 py-2 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                 <option value="">All Statuses</option>
                 <option value="created" {{ request('status') === 'created' ? 'selected' : '' }}>Created</option>
@@ -34,7 +34,7 @@
                 <option value="finished" {{ request('status') === 'finished' ? 'selected' : '' }}>Finished</option>
             </select>
         </div>
-        
+
         <div class="flex space-x-2">
             <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
                 Filter
@@ -58,7 +58,7 @@
                                     <a href="{{ route('surveys.show', $survey) }}">{{ $survey->name }}</a>
                                 </p>
                                 <div class="ml-2 flex-shrink-0">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                         @if($survey->status === 'created') bg-gray-100 text-gray-800
                                         @elseif($survey->status === 'online') bg-green-100 text-green-800
                                         @else bg-red-100 text-red-800 @endif">
@@ -90,7 +90,7 @@
             @endforeach
         </ul>
     </div>
-    
+
     <!-- Pagination -->
     <div class="mt-6">
         {{ $surveys->links() }}

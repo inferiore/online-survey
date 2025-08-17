@@ -2,27 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Contracts\QuestionServiceInterface;
+use App\Contracts\SurveyServiceInterface;
+use App\Http\Requests\BulkDeleteQuestionsRequest;
+use App\Http\Requests\MassAssignQuestionsRequest;
+use App\Http\Requests\StoreQuestionRequest;
+use App\Http\Requests\UpdateQuestionRequest;
 use App\Models\Question;
 use App\Models\Survey;
 use Illuminate\Http\Request;
 
 class QuestionController extends Controller
 {
+    public function __construct(
+        private QuestionServiceInterface $questionService,
+        private SurveyServiceInterface $surveyService
+    ) {}
     public function index(Request $request)
     {
-        $query = Question::with('createdBy');
+        $filters = $request->only(['name', 'question_type', 'created_by_id']);
+        $questions = $this->questionService->getFilteredQuestions($filters, 15);
 
-        // Filter by question name
-        if ($request->filled('name')) {
-            $query->where('name', 'like', '%' . $request->name . '%');
-        }
-
-        // Filter by question type
-        if ($request->filled('question_type')) {
-            $query->where('question_type', $request->question_type);
-        }
-
-        $questions = $query->latest()->paginate(15)->withQueryString();
         return view('questions.index', compact('questions'));
     }
 
@@ -31,27 +31,18 @@ class QuestionController extends Controller
         return view('questions.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreQuestionRequest $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'question_text' => 'required|string',
-            'question_type' => 'required|in:rating,comment-only,multiple-choice',
-        ]);
-
-        Question::create([
-            'name' => $request->name,
-            'question_text' => $request->question_text,
-            'question_type' => $request->question_type,
-            'created_by_id' => auth()->id()??1,
-        ]);
+        $this->questionService->createQuestion($request->validated());
 
         return redirect()->route('questions.index')->with('success', 'Question created successfully.');
     }
 
     public function show(Question $question)
     {
+        $question = $this->questionService->getQuestionWithDetails($question->id);
         $question->load('createdBy', 'surveys');
+
         return view('questions.show', compact('question'));
     }
 
@@ -60,87 +51,96 @@ class QuestionController extends Controller
         return view('questions.edit', compact('question'));
     }
 
-    public function update(Request $request, Question $question)
+    public function update(UpdateQuestionRequest $request, Question $question)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'question_text' => 'required|string',
-            'question_type' => 'required|in:rating,comment-only,multiple-choice',
-        ]);
-
-        $question->update([
-            'name' => $request->name,
-            'question_text' => $request->question_text,
-            'question_type' => $request->question_type,
-        ]);
+        $this->questionService->updateQuestion($question, $request->validated());
 
         return redirect()->route('questions.index')->with('success', 'Question updated successfully.');
     }
 
     public function destroy(Question $question)
     {
-        $question->delete();
+        //$this->questionService->deleteQuestion($question);
+
         return redirect()->route('questions.index')->with('success', 'Question deleted successfully.');
     }
 
     public function showMassAssign(Request $request)
     {
         $questionIds = $request->input('question_ids', []);
+
+        // Get selected questions
         $questions = Question::whereIn('id', $questionIds)->get();
 
-        // Build surveys query with filters
-        $surveysQuery = Survey::query();
+        // Use SurveyService for filtered surveys
+        $surveyFilters = $request->only(['survey_name', 'survey_status']);
 
-        // Filter by survey name
-        if ($request->filled('survey_name')) {
-            $surveysQuery->where('name', 'like', '%' . $request->survey_name . '%');
+        // Map filter names to match SurveyRepository expectations
+        $mappedFilters = [];
+        if (!empty($surveyFilters['survey_name'])) {
+            $mappedFilters['name'] = $surveyFilters['survey_name'];
+        }
+        if (!empty($surveyFilters['survey_status'])) {
+            $mappedFilters['status'] = $surveyFilters['survey_status'];
         }
 
-        // Filter by survey status
-        if ($request->filled('survey_status')) {
-            $surveysQuery->where('status', $request->survey_status);
-        }
-
-        $surveys = $surveysQuery->latest()->paginate(10)->withQueryString();
+        $surveys = $this->surveyService->getFilteredSurveys($mappedFilters, 10);
 
         return view('questions.mass-assign', compact('questions', 'surveys', 'questionIds'));
     }
 
-    public function massAssign(Request $request)
+    public function massAssign(MassAssignQuestionsRequest $request)
     {
-        $request->validate([
-            'question_ids' => 'required|array',
-            'question_ids.*' => 'exists:questions,id',
-            'survey_ids' => 'required|array',
-            'survey_ids.*' => 'exists:surveys,id',
-        ]);
+        $validated = $request->validated();
+        $createdById = auth()->id() ?? 1;
 
-        foreach ($request->survey_ids as $surveyId) {
-            $survey = Survey::find($surveyId);
-            foreach ($request->question_ids as $questionId) {
-                $survey->questions()->syncWithoutDetaching([$questionId => ['created_by_id' => auth()->id()??1]]);
-            }
+        // Get questions that already exist in the selected surveys
+        $existingQuestions = $this->questionService->getExistingQuestionsInSurveys(
+            $validated['question_ids'],
+            $validated['survey_ids']
+        );
+
+        $success = $this->questionService->assignQuestionsToSurveys(
+            $validated['question_ids'],
+            $validated['survey_ids'],
+            $createdById
+        );
+
+        if (!$success) {
+            return redirect()->route('questions.index')
+                ->withErrors(['error' => 'Failed to assign questions to surveys. Please try again.']);
         }
 
-        return redirect()->route('questions.index')->with('success', 'Questions assigned to surveys successfully.');
-    }
 
-    public function massDelete(Request $request)
-    {
-        $request->validate([
-            'question_ids' => 'required|array',
-            'question_ids.*' => 'exists:questions,id',
-        ]);
-        Question::whereIn('id', $request->question_ids)->doesntHave('surveys')->delete();
-        $noDeleteQuestions = Question::whereIn('id', $request->question_ids)->has('surveys')->get()->pluck('name')->toArray();
-
-        $message = count($noDeleteQuestions) >0 ? 'Questions partially deleted because some of them are linked to question or answers':'Questions deleted successfully.';
 
         return redirect()->route('questions.index')
-            ->with('warnings',$noDeleteQuestions)
-            ->with('warning',$message )
+            ->with('success', "Questions assigned to surveys successfully.")
+            ->with('info', $existingQuestions);
+    }
 
-            ;
+    public function massDelete(BulkDeleteQuestionsRequest $request)
+    {
+        $validated = $request->validated();
+        $questionIds = $validated['question_ids'];
+        $totalQuestions = count($questionIds);
 
+        // Get questions that are linked to surveys (won't be deleted)
+        $linkedQuestions = $this->questionService->getLinkedQuestions($questionIds);
+
+        // Attempt to delete questions (service will automatically exclude linked ones)
+        $success = $this->questionService->bulkDeleteQuestions($questionIds);
+
+        if (!$success) {
+            return redirect()->route('questions.index')
+                ->withErrors(['error' => 'Failed to delete questions. Please try again.']);
+        }
+
+        // Calculate actual deletions
+        $deletedCount = $totalQuestions - count($linkedQuestions);
+        $message = "From {$totalQuestions} question(s) to be deleted, {$deletedCount} were successfully deleted.";
+
+        return redirect()->route('questions.index')
+            ->with('success', $message)
+            ->with('warnings', $linkedQuestions);
     }
 }

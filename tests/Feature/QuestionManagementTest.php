@@ -169,8 +169,7 @@ class QuestionManagementTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user)
-            ->get(route('questions.index', ['name' => 'Satisfaction']));
-
+            ->get(route('questions.index',['name' => 'Satisfaction']));
         $response->assertStatus(200);
         $response->assertSee('Satisfaction Question');
         $response->assertDontSee('Feedback Question');
@@ -232,19 +231,57 @@ class QuestionManagementTest extends TestCase
     public function test_user_can_mass_delete_questions()
     {
         $questions = Question::factory(3)->create(['created_by_id' => $this->user->id]);
+        $questionIds = $questions->pluck('id')->toArray();
 
         $response = $this->actingAs($this->user)
             ->delete(route('questions.mass-delete'), [
-                'question_ids' => $questions->pluck('id')->toArray()
+                'question_ids' => $questionIds
             ]);
-        $noDeleteQuestions = Question::whereIn('id', $questions->pluck('id')->toArray())->has('surveys')->get()->pluck('name')->toArray();
-
-        $message = count($noDeleteQuestions) >0 ? 'Questions partially deleted because some of them are linked to question or answers':'Questions deleted successfully.';
 
         $response->assertRedirect(route('questions.index'));
-        $response->assertSessionHas('warning', $message);
 
+        // Check for the new message format: "From X question(s) to be deleted, Y were successfully deleted."
+        $response->assertSessionHas('success', 'From 3 question(s) to be deleted, 3 were successfully deleted.');
+
+        // Verify all questions were deleted
         foreach ($questions as $question) {
+            $this->assertDatabaseMissing('questions', [
+                'id' => $question->id
+            ]);
+        }
+    }
+
+    public function test_mass_delete_with_linked_questions()
+    {
+        // Create questions - some linked to surveys, some not
+        $linkedQuestions = Question::factory(2)->create(['created_by_id' => $this->user->id]);
+        $unlinkedQuestions = Question::factory(2)->create(['created_by_id' => $this->user->id]);
+
+        // Create a survey and link some questions to it
+        $survey = Survey::factory()->create(['created_by_id' => $this->user->id]);
+        $survey->questions()->attach($linkedQuestions->pluck('id'), ['created_by_id' => $this->user->id]);
+
+        $allQuestionIds = $linkedQuestions->concat($unlinkedQuestions)->pluck('id')->toArray();
+
+        $response = $this->actingAs($this->user)
+            ->delete(route('questions.mass-delete'), [
+                'question_ids' => $allQuestionIds
+            ]);
+
+        $response->assertRedirect(route('questions.index'));
+
+        // Should delete 2 unlinked questions out of 4 total
+        $response->assertSessionHas('success', 'From 4 question(s) to be deleted, 2 were successfully deleted.');
+
+        // Verify linked questions still exist
+        foreach ($linkedQuestions as $question) {
+            $this->assertDatabaseHas('questions', [
+                'id' => $question->id
+            ]);
+        }
+
+        // Verify unlinked questions were deleted
+        foreach ($unlinkedQuestions as $question) {
             $this->assertDatabaseMissing('questions', [
                 'id' => $question->id
             ]);
